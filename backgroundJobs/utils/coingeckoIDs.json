@@ -3,14 +3,17 @@
     "ETH":"ethereum",
     "BTC":"bitcoin",
     "yvDAI":"dai",
+    "mooScreamDAI":"dai",
     "yvWETH":"weth",
     "yvWBTC":"wrapped-bitcoin",
     "yvWFTM":"wrapped-fantom",
     "LINK": "chainlink",
+    "mooScreamLINK":"chainlink",
     "SUSHI":"sushi",
     "AAVE": "aave",
     "xBOO": "boo-mirrorworld",
     "yvYFI": "yearn-finance",
     "mooScreamETH":"ethereum",
-    "mooScreamWBTC":"bitcoin"
+    "mooScreamWBTC":"bitcoin",
+    "mooFantomBIFI":"beefy-finance"
 }

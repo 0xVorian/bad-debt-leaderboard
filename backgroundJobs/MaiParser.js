@@ -11,10 +11,9 @@ const coinGeckoIDs = require("./utils/coingeckoIDs.json")
 
 
 class MaiParser {
-    constructor(maiInfo, network, web3, usdcValueOnFTM, geckoFTMPrice, heavyUpdateInterval = 24) {
+    constructor(maiInfo, network, web3, geckoFTMPrice, heavyUpdateInterval = 24) {
         this.web3 = web3
         this.heavyUpdateInterval = heavyUpdateInterval
-        this.usdcValueOnFTM = usdcValueOnFTM;
         this.geckoFTMPrice = geckoFTMPrice;
 
         this.tvl = toBN("0")
@@ -98,11 +97,11 @@ class MaiParser {
                         "0x49c68eDb7aeBd968F197121453e41b8704AcdE0C": "0x321162Cd933E2Be498Cd2267a90534A804051b11",
                         "0x0a03D2C1cFcA48075992d810cc69Bd9FE026384a": "0x74b23882a30290451A17c44f4F05243b6b58C76d",
                         "0x97927aBfE1aBBE5429cBe79260B290222fC9fbba": "0x321162Cd933E2Be498Cd2267a90534A804051b11",
-                        "0x8e5e4D08485673770Ab372c05f95081BE0636Fa2": "0xb3654dc3D10Ea7645f8319668E8F54d2574FBdC8",
-                        "0xBf0ff8ac03f3E0DD7d8faA9b571ebA999a854146": "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
-                        "0xf34e271312e41bbd7c451b76af2af8339d6f16ed": "0xFdb9Ab8B9513Ad9E419Cf19530feE49d412C3Ee3",
+                        "0x6DfE2AAEA9dAadADf0865B661b53040E842640f8": "0xb3654dc3D10Ea7645f8319668E8F54d2574FBdC8",
+                        "0x920786cff2A6f601975874Bb24C63f0115Df7dc8": "0x8d11ec38a3eb5e956b052f67da8bdc9bef8abf3e",
+                        "0xA3e3Af161943CfB3941B631676134bb048739727": "0xfdb9ab8b9513ad9e419cf19530fee49d412c3ee3",
                         "0x9ba01b1279b1f7152b42aca69faf756029a9abde": "0xf0702249F4D3A25cD3DED7859a165693685Ab577",
-                        "0x75d4ab6843593c111eeb02ff07055009c836a1ef": "0xd6070ae98b8069de6B494332d1A1a81B6179D960",
+                        "0xbF07093ccd6adFC3dEB259C557b61E94c1F66945": "0xd6070ae98b8069de6B494332d1A1a81B6179D960",
                     }
 
                     //if MooToken
@@ -129,7 +128,7 @@ class MaiParser {
                                 const priceFeedDecimalsFactor = toBN(10).pow(toBN(this.feedDecimals));
                                 let mooTokenPriceInWant = await collateralContract.methods.getPricePerFullShare().call();
                                 mooTokenPriceInWant = toBN(mooTokenPriceInWant).div(priceFeedDecimalsFactor);
-                            const want = await collateralContract.methods.want().call();
+                            const want = await collateralContract.methods.want().call();                            
                             this.BeefyVaultFactoring = mooTokenPriceInWant.toNumber();
                             tokenAddress = want;
                         }
@@ -145,28 +144,29 @@ class MaiParser {
                         tokenAddress = yvTranslation[tokenAddress];
                     }
 
+                    console.log('token address', tokenAddress);
+
                     ///Oracle price
                     let oraclePrice = await this.vault.methods.getEthPriceSource().call();
-                    oraclePrice = toBN(oraclePrice).mul(toBN(1000));
+                    oraclePrice = toBN(oraclePrice).mul(toBN(10000));
                     this.feedDecimals = await this.vault.methods.priceSourceDecimals().call();
+                    if(tokenAddress === "0x321162Cd933E2Be498Cd2267a90534A804051b11"){
+                        this.feedDecimals = 18;
+                        this.tokenDecimals = 8;
+                    }
                     const priceFeedDecimalsFactor = toBN(10).pow(toBN(this.feedDecimals));
                     oraclePrice = oraclePrice.div(priceFeedDecimalsFactor);
-                    oraclePrice = oraclePrice.div(toBN(1000));
-                    oraclePrice = oraclePrice.toNumber();
+                    oraclePrice = (oraclePrice.div(toBN(10000))).toNumber();
                     console.log("oracle price:", oraclePrice);
-
-                    console.log(tokenAddress);
 
 
                     //Fantom Price
                     let oneInchFantomPrice = 0;
-                    oneInchFantomPrice = await axios.get(`https://api-bprotocol.1inch.io/v5.2/250/quote?src=0x04068DA6C83AFCFA0e13ba15A6696662335D5B75&dst=${tokenAddress}&amount=1000000000`);
+                    oneInchFantomPrice = await axios.get(`https://api-bprotocol.1inch.io/v5.2/250/quote?src=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&dst=${tokenAddress}&amount=1000000000000000000000`);
                     const decimalsFactor = toBN("10").pow(toBN(this.tokenDecimals))
-                    console.log(oneInchFantomPrice.data.toAmount);
                     oneInchFantomPrice = toBN(oneInchFantomPrice.data.toAmount).mul(toBN(1000)).div(decimalsFactor);
-                    console.log('oneIsssssnchFantomPrice', oneInchFantomPrice.toString())
-                    oneInchFantomPrice = oneInchFantomPrice.div(toBN(1000));
-                    oneInchFantomPrice = (1000 / (oneInchFantomPrice.toNumber())) * this.usdcValueOnFTM;
+                    oneInchFantomPrice = oneInchFantomPrice.toNumber() / 1000;
+                    oneInchFantomPrice = (1000 / oneInchFantomPrice * this.geckoFTMPrice);
                     console.log("1inch FTM price:", oneInchFantomPrice);
 
 
@@ -185,7 +185,13 @@ class MaiParser {
                         finalPrice = finalPrice * this.BeefyVaultFactoring;
                     }
                     console.log("final price", finalPrice);
+                    if(!tokenAddress === "0x321162Cd933E2Be498Cd2267a90534A804051b11"){
                     this.price = toBN((finalPrice * 10000).toFixed()).mul(priceFeedDecimalsFactor).div(toBN(10000));
+                    }
+                    if(tokenAddress === "0x321162Cd933E2Be498Cd2267a90534A804051b11"){
+                        this.price = toBN((finalPrice * 10000).toFixed()).mul(decimalsFactor).div(toBN(10000));
+                        }
+
                     console.log('logged price', this.price.toNumber())
                     return
                 }
@@ -374,12 +380,12 @@ async function test() {
         // "0x3609A304c6A41d87E895b9c1fd18c02ba989Ba90",
         // "0xC1c7eF18ABC94013F6c58C6CdF9e829A48075b4e",
         "0x5563Cc1ee23c4b17C861418cFF16641D46E12436",
-        "0x8e5e4D08485673770Ab372c05f95081BE0636Fa2",
-        "0xBf0ff8ac03f3E0DD7d8faA9b571ebA999a854146",
-        "0xf34e271312e41bbd7c451b76af2af8339d6f16ed",
-        "0x9ba01b1279b1f7152b42aca69faf756029a9abde",
-        "0x75d4ab6843593c111eeb02ff07055009c836a1ef",
-        "0x3f6cf10e85e9c0630856599FAB8D8BFcd9C0E7D4"
+        // "0x8e5e4D08485673770Ab372c05f95081BE0636Fa2",
+        // "0xBf0ff8ac03f3E0DD7d8faA9b571ebA999a854146",
+        // "0xf34e271312e41bbd7c451b76af2af8339d6f16ed",
+        // "0x9ba01b1279b1f7152b42aca69faf756029a9abde",
+        // "0x75d4ab6843593c111eeb02ff07055009c836a1ef",
+        // "0x3f6cf10e85e9c0630856599FAB8D8BFcd9C0E7D4"
     ]
 
     let badDebt = 0.0
@@ -387,18 +393,13 @@ async function test() {
     //// Get FTM value
     let geckoFTMPrice = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=fantom&vs_currencies=usd`);
     geckoFTMPrice = geckoFTMPrice.data['fantom']['usd'];
-    // asking for 10k FTM in USDC
-    let usdcPriceInFTM = await axios.get(`https://api-bprotocol.1inch.io/v5.2/250/quote?src=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&dst=0x04068DA6C83AFCFA0e13ba15A6696662335D5B75&amount=10000000000000000000000`);
-    usdcPriceInFTM = usdcPriceInFTM.data.toAmount / 1e6 / 10000;
-    const usdcValueOnFTM = geckoFTMPrice / usdcPriceInFTM;
-    console.log('usdcValueOnFTM', usdcValueOnFTM)
 
     for (const addr of addresses) {
         maiInfo["address"] = addr
 
         console.log({ maiInfo })
 
-        const mai = new MaiParser(maiInfo, "FTM", web3, usdcValueOnFTM, geckoFTMPrice)
+        const mai = new MaiParser(maiInfo, "FTM", web3, geckoFTMPrice)
         badDebt += await mai.main(true)
 
         console.log({ badDebt })
