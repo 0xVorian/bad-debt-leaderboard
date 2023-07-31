@@ -156,17 +156,17 @@ class MaiParser {
                     }
                     const priceFeedDecimalsFactor = toBN(10).pow(toBN(this.feedDecimals));
                     oraclePrice = oraclePrice.div(priceFeedDecimalsFactor);
-                    oraclePrice = (oraclePrice.div(toBN(10000))).toNumber();
+                    oraclePrice = oraclePrice.toNumber() / 10000;
                     console.log("oracle price:", oraclePrice);
 
 
                     //Fantom Price
                     let oneInchFantomPrice = 0;
-                    oneInchFantomPrice = await axios.get(`https://api-bprotocol.1inch.io/v5.2/250/quote?src=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&dst=${tokenAddress}&amount=1000000000000000000000`);
+                    oneInchFantomPrice = await axios.get(`https://api-bprotocol.1inch.io/v5.2/250/quote?src=0x82f0B8B456c1A451378467398982d4834b6829c1&dst=${tokenAddress}&amount=1000000000000000000000`);
                     const decimalsFactor = toBN("10").pow(toBN(this.tokenDecimals))
                     oneInchFantomPrice = toBN(oneInchFantomPrice.data.toAmount).mul(toBN(1000)).div(decimalsFactor);
                     oneInchFantomPrice = oneInchFantomPrice.toNumber() / 1000;
-                    oneInchFantomPrice = (1000 / oneInchFantomPrice * this.geckoFTMPrice);
+                    oneInchFantomPrice = (1000 / oneInchFantomPrice);
                     console.log("1inch FTM price:", oneInchFantomPrice);
 
 
@@ -185,12 +185,13 @@ class MaiParser {
                         finalPrice = finalPrice * this.BeefyVaultFactoring;
                     }
                     console.log("final price", finalPrice);
-                    if(!tokenAddress === "0x321162Cd933E2Be498Cd2267a90534A804051b11"){
-                    this.price = toBN((finalPrice * 10000).toFixed()).mul(priceFeedDecimalsFactor).div(toBN(10000));
-                    }
                     if(tokenAddress === "0x321162Cd933E2Be498Cd2267a90534A804051b11"){
                         this.price = toBN((finalPrice * 10000).toFixed()).mul(decimalsFactor).div(toBN(10000));
+                    console.log('logged price', this.price.toNumber())
+                    return
                         }
+                    this.price = toBN((finalPrice * 10000).toFixed()).mul(priceFeedDecimalsFactor).div(toBN(10000));
+
 
                     console.log('logged price', this.price.toNumber())
                     return
