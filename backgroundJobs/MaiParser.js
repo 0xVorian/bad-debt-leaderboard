@@ -11,9 +11,11 @@ const coinGeckoIDs = require("./utils/coingeckoIDs.json")
 
 
 class MaiParser {
-    constructor(maiInfo, network, web3, heavyUpdateInterval = 24) {
+    constructor(maiInfo, network, web3, usdcValueOnFTM, geckoFTMPrice, heavyUpdateInterval = 24) {
         this.web3 = web3
         this.heavyUpdateInterval = heavyUpdateInterval
+        this.usdcValueOnFTM = usdcValueOnFTM;
+        this.geckoFTMPrice = geckoFTMPrice;
 
         this.tvl = toBN("0")
         this.totalBorrows = toBN("0")
@@ -35,6 +37,8 @@ class MaiParser {
         this.network = network
 
         this.output = {}
+        this.BeefyVaultFactoring = undefined;
+
     }
 
     async heavyUpdate() {
@@ -74,14 +78,72 @@ class MaiParser {
     async initPrices() {
         console.log("getting prices")
         try {
-            if (this.network === "ergererbteb")
+            if (this.network === "FTM")
                 try {
-                    const tokenAddress = await this.vault.methods.collateral().call();
+                    let tokenAddress = await this.vault.methods.collateral().call();
                     const token = new this.web3.eth.Contract(Addresses.erc20Abi, tokenAddress)
                     this.tokenDecimals = await token.methods.decimals().call();
                     const tokenSymbol = await token.methods.symbol().call();
                     console.log("tokenSymbol", tokenSymbol);
 
+                    /// yvAssets addresses translator
+                    const yvTranslation = {
+                        '0x0DEC85e74A92c52b7F708c4B10207D9560CEFaf0': "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
+                        '0x637eC617c86D24E421328e6CAEa1d92114892439': "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
+                        '0xCe2Fc0bDc18BD6a4d9A725791A3DEe33F3a23BB7': "0x74b23882a30290451A17c44f4F05243b6b58C76d",
+                        '0xd817A100AB8A29fE3DBd925c2EB489D67F758DA9': "0x321162Cd933E2Be498Cd2267a90534A804051b11",
+                        '0x2C850cceD00ce2b14AA9D658b7Cad5dF659493Db': "0x29b0Da86e484E1C0029B56e817912d778aC0EC69"
+                    }
+                    const mooTranslation = {
+                        "0x49c68eDb7aeBd968F197121453e41b8704AcdE0C": "0x321162Cd933E2Be498Cd2267a90534A804051b11",
+                        "0x0a03D2C1cFcA48075992d810cc69Bd9FE026384a": "0x74b23882a30290451A17c44f4F05243b6b58C76d",
+                        "0x97927aBfE1aBBE5429cBe79260B290222fC9fbba": "0x321162Cd933E2Be498Cd2267a90534A804051b11",
+                        "0x8e5e4D08485673770Ab372c05f95081BE0636Fa2": "0xb3654dc3D10Ea7645f8319668E8F54d2574FBdC8",
+                        "0xBf0ff8ac03f3E0DD7d8faA9b571ebA999a854146": "0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E",
+                        "0xf34e271312e41bbd7c451b76af2af8339d6f16ed": "0xFdb9Ab8B9513Ad9E419Cf19530feE49d412C3Ee3",
+                        "0x9ba01b1279b1f7152b42aca69faf756029a9abde": "0xf0702249F4D3A25cD3DED7859a165693685Ab577",
+                        "0x75d4ab6843593c111eeb02ff07055009c836a1ef": "0xd6070ae98b8069de6B494332d1A1a81B6179D960",
+                    }
+
+                    //if MooToken
+                    if (mooTranslation[tokenAddress]) {
+                        console.log("MooScreamFTM token detected");
+                        try {
+                            /// if it's the MooScreamFTM, needs native BeefyVaultABI
+                            if (tokenAddress === "0x49c68eDb7aeBd968F197121453e41b8704AcdE0C") {
+                                /// get price of collateral token in FTM
+                                const collateralContract = new this.web3.eth.Contract(Addresses.beefyVaultV6NativeABI, tokenAddress);
+                                let mooScreamFTMPrice = await collateralContract.methods.getPricePerFullShare().call();
+                                this.feedDecimals = await collateralContract.methods.decimals().call();
+                                const priceFeedDecimalsFactor = toBN(10).pow(toBN(this.feedDecimals));
+                                mooScreamFTMPrice = toBN(mooScreamFTMPrice).div(priceFeedDecimalsFactor);
+                                mooScreamFTMPrice = mooScreamFTMPrice.toNumber() * this.geckoFTMPrice;
+                                this.price = toBN((mooScreamFTMPrice * 10000).toFixed()).mul(priceFeedDecimalsFactor).div(toBN(10000));
+
+                                console.log("MooScreamFTM price set at", this.price.toString());
+                                return
+                            }
+                            if(mooTranslation[tokenAddress]){
+                            const collateralContract = new this.web3.eth.Contract(Addresses.beefyVaultV6ABI, tokenAddress);
+                                this.feedDecimals = await collateralContract.methods.decimals().call();
+                                const priceFeedDecimalsFactor = toBN(10).pow(toBN(this.feedDecimals));
+                                let mooTokenPriceInWant = await collateralContract.methods.getPricePerFullShare().call();
+                                mooTokenPriceInWant = toBN(mooTokenPriceInWant).div(priceFeedDecimalsFactor);
+                            const want = await collateralContract.methods.want().call();
+                            this.BeefyVaultFactoring = mooTokenPriceInWant.toNumber();
+                            tokenAddress = want;
+                        }
+                        }
+                        catch (err) {
+                            console.log(err)
+                        }
+                    }
+
+
+
+                    if (yvTranslation[tokenAddress]) {
+                        tokenAddress = yvTranslation[tokenAddress];
+                    }
 
                     ///Oracle price
                     let oraclePrice = await this.vault.methods.getEthPriceSource().call();
@@ -89,16 +151,22 @@ class MaiParser {
                     this.feedDecimals = await this.vault.methods.priceSourceDecimals().call();
                     const priceFeedDecimalsFactor = toBN(10).pow(toBN(this.feedDecimals));
                     oraclePrice = oraclePrice.div(priceFeedDecimalsFactor);
-                    oraclePrice = oraclePrice.toNumber() / 1000;
+                    oraclePrice = oraclePrice.div(toBN(1000));
+                    oraclePrice = oraclePrice.toNumber();
                     console.log("oracle price:", oraclePrice);
+
+                    console.log(tokenAddress);
 
 
                     //Fantom Price
                     let oneInchFantomPrice = 0;
                     oneInchFantomPrice = await axios.get(`https://api-bprotocol.1inch.io/v5.2/250/quote?src=0x04068DA6C83AFCFA0e13ba15A6696662335D5B75&dst=${tokenAddress}&amount=1000000000`);
                     const decimalsFactor = toBN("10").pow(toBN(this.tokenDecimals))
+                    console.log(oneInchFantomPrice.data.toAmount);
                     oneInchFantomPrice = toBN(oneInchFantomPrice.data.toAmount).mul(toBN(1000)).div(decimalsFactor);
-                    oneInchFantomPrice = 1000 / (oneInchFantomPrice.toNumber() / 1000);
+                    console.log('oneIsssssnchFantomPrice', oneInchFantomPrice.toString())
+                    oneInchFantomPrice = oneInchFantomPrice.div(toBN(1000));
+                    oneInchFantomPrice = (1000 / (oneInchFantomPrice.toNumber())) * this.usdcValueOnFTM;
                     console.log("1inch FTM price:", oneInchFantomPrice);
 
 
@@ -109,17 +177,27 @@ class MaiParser {
                     console.log("mainstream price (coingecko):", mainstreamPrice)
 
 
-                    console.log("1inch / mainstream", mainstreamPrice / oneInchFantomPrice);
-                    const finalPrice = oraclePrice * mainstreamPrice / oneInchFantomPrice;
+                    console.log("mainstream / 1inch", oneInchFantomPrice / mainstreamPrice);
+                    let finalPrice = oraclePrice * oneInchFantomPrice / mainstreamPrice;
+                    if (this.BeefyVaultFactoring) {
+                        console.log('finalPrice', finalPrice);
+                        console.log('this.BeefyVaultFactoring', this.BeefyVaultFactoring)
+                        finalPrice = finalPrice * this.BeefyVaultFactoring;
+                    }
                     console.log("final price", finalPrice);
                     this.price = toBN((finalPrice * 10000).toFixed()).mul(priceFeedDecimalsFactor).div(toBN(10000));
                     console.log('logged price', this.price.toNumber())
                     return
                 }
-                catch {
+                catch (err) {
+                    console.log("!!!!!!");
+                    console.log("FTM chain price determination reverted to oracle price");
+                    err['response'] ? console.log(err['response']['data']['description']) : console.log(err);
+                    console.log("!!!!!!");
                     this.price = await this.vault.methods.getEthPriceSource().call()
+                    console.log('price', this.price)
                 }
-                this.price = await this.vault.methods.getEthPriceSource().call()
+            this.price = await this.vault.methods.getEthPriceSource().call()
 
         }
         catch (err) {
@@ -131,8 +209,6 @@ class MaiParser {
                 throw new Error(err)
             }
         }
-        console.log(this.price)
-
         const rawTokenVaults = [
             "0x88d84a85A87ED12B8f098e8953B322fF789fCD1a",
             "0xa3Fa99A148fA48D14Ed51d610c367C61876997F1"
@@ -163,13 +239,10 @@ class MaiParser {
         const token = new this.web3.eth.Contract(Addresses.erc20Abi, tokenAddress)
         this.tokenDecimals = await token.methods.decimals().call()
 
-        console.log('test', this.price)
         let oraclePrice = toBN(this.price).mul(toBN(10));
         const priceFeedDecimalsFactor = toBN(10).pow(toBN(this.feedDecimals));
         oraclePrice = oraclePrice.div(priceFeedDecimalsFactor);
-        console.log('testing', oraclePrice.toNumber());
         oraclePrice = oraclePrice.toNumber() / 10;
-        console.log("oracle price:", oraclePrice);
     }
 
     async updateAllUsers() {
@@ -311,12 +384,21 @@ async function test() {
 
     let badDebt = 0.0
 
+    //// Get FTM value
+    let geckoFTMPrice = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=fantom&vs_currencies=usd`);
+    geckoFTMPrice = geckoFTMPrice.data['fantom']['usd'];
+    // asking for 10k FTM in USDC
+    let usdcPriceInFTM = await axios.get(`https://api-bprotocol.1inch.io/v5.2/250/quote?src=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&dst=0x04068DA6C83AFCFA0e13ba15A6696662335D5B75&amount=10000000000000000000000`);
+    usdcPriceInFTM = usdcPriceInFTM.data.toAmount / 1e6 / 10000;
+    const usdcValueOnFTM = geckoFTMPrice / usdcPriceInFTM;
+    console.log('usdcValueOnFTM', usdcValueOnFTM)
+
     for (const addr of addresses) {
         maiInfo["address"] = addr
 
         console.log({ maiInfo })
 
-        const mai = new MaiParser(maiInfo, "FTM", web3)
+        const mai = new MaiParser(maiInfo, "FTM", web3, usdcValueOnFTM, geckoFTMPrice)
         badDebt += await mai.main(true)
 
         console.log({ badDebt })

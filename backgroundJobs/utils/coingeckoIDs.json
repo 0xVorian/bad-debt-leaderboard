@@ -1,4 +1,16 @@
 {
     "WFTM":"wrapped-fantom",
-    "ETH":"ethereum"
+    "ETH":"ethereum",
+    "BTC":"bitcoin",
+    "yvDAI":"dai",
+    "yvWETH":"weth",
+    "yvWBTC":"wrapped-bitcoin",
+    "yvWFTM":"wrapped-fantom",
+    "LINK": "chainlink",
+    "SUSHI":"sushi",
+    "AAVE": "aave",
+    "xBOO": "boo-mirrorworld",
+    "yvYFI": "yearn-finance",
+    "mooScreamETH":"ethereum",
+    "mooScreamWBTC":"bitcoin"
 }
