@@ -20,7 +20,7 @@ const getDay = () => {
   }
   
 class MaiParser {
-    constructor(maiInfo, network, name, web3, geckoFTMPrice, heavyUpdateInterval = 24) {
+    constructor(sending, maiInfo, network, name, web3, geckoFTMPrice, heavyUpdateInterval = 24) {
         this.web3 = web3
         this.heavyUpdateInterval = heavyUpdateInterval
         this.geckoFTMPrice = geckoFTMPrice;
@@ -46,6 +46,8 @@ class MaiParser {
         this.networkName = name
 
         this.output = {}
+        this.sumOfBorrows = 0;
+        this.sending = sending;
         this.BeefyVaultFactoring = undefined;
 
     }
@@ -78,7 +80,8 @@ class MaiParser {
         }
 
         if (onlyOnce) {
-            return Number(fromWei(this.sumOfBadDebt.toString()))
+            console.log("returned .....", this.sumOfBorrows);
+            return Number(this.sumOfBorrows);
         }
 
         setTimeout(this.main.bind(this), 1000 * 60 * 60 * 2) // sleep for 2 hours
@@ -328,9 +331,15 @@ class MaiParser {
         const vaultName = await this.vault.methods.name().call();
         const fileName = `subjob${this.networkName}_MAI_${vaultName}.json`;
         const day = getDay();
+        if(this.sending){
         uploadJsonFile(JSON.stringify(this.output), fileName, day);
+    }
         console.log(JSON.stringify(this.output))
         console.log("total bad debt", this.sumOfBadDebt.toString(), { currTime })
+
+        const borrowsDecimals = toBN("10").pow(toBN(18));
+        borrows = borrows.div(borrowsDecimals);
+        this.sumOfBorrows = borrows.toNumber();
 
         return this.sumOfBadDebt
     }

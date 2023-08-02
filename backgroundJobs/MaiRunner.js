@@ -1,12 +1,13 @@
 const Web3 = require('web3');
 const MaiParser = require('./MaiParser')
 const axios = require('axios')
+const { toBN } = Web3.utils
 
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 
-async function maiRunner(onlyFTM=false) {
+async function maiRunner(onlyFTM = false, sending = true) {
     const mai = [
         {
             "name": "polygon",
@@ -74,23 +75,15 @@ async function maiRunner(onlyFTM=false) {
             ]
         },
         {
-            "name": "ethereum",
-            "web3": "https://eth-mainnet.g.alchemy.com/v2/8n_vZdyeQruIzqHrzgNwVaVTf_1xSUJc",
-            "network": "ETH",
+            "name": "avalanche",
+            "web3": "https://rpc.ankr.com/avalanche",
+            "network": "AVAX",
             "addresses": [
-                "0x60d133c666919B54a3254E0d3F14332cB783B733",
-                "0xEcbd32bD581e241739be1763DFE7a8fFcC844ae1",
-                "0x98eb27E5F24FB83b7D129D789665b08C258b4cCF",
-                "0x8C45969aD19D297c9B85763e90D0344C6E2ac9d1",
-                "0xcc61Ee649A95F2E2f0830838681f839BDb7CB823",
-                "0x82E90EB7034C1DF646bD06aFb9E67281AAb5ed28",
-                "0x67411793c5dcf9abc5a8d113ddd0e596cd5ba3e7",
-                "0xD1a6F422ceFf5a39b764e340Fd1bCd46C0744F83",
-                "0x86f78d3cbCa0636817AD9e27a44996C738Ec4932",
-                "0xCA3EB45FB186Ed4e75B9B22A514fF1d4abAdD123",
-                "0x4ce4c542d96ce1872fea4fa3fbb2e7ae31862bad",
-                "0x5773e8953cf60f495eb3c2db45dd753b5c4b7473",
-                "0x954ac12c339c60eafbb32213b15af3f7c7a0dec2",
+                "0xfA19c1d104F4AEfb8d5564f02B3AdCa1b515da58",
+                "0x13a7fe3ab741ea6301db8b164290be711f546a73",
+                "0xa9122dacf3fccf1aae6b8ddd1f75b6267e5cbbb8",
+                "0x1f8f7a1d38e41eaf0ed916def29bdd13f2a3f11a",
+                "0x73a755378788a4542a780002a75a7bae7f558730"
             ]
         },
         {
@@ -105,6 +98,26 @@ async function maiRunner(onlyFTM=false) {
                 "0xa864956ff961ce62c266a8563b46577d3573372e",
                 "0x950eceee9e7d7366a24fc9d2ed4c0c37d17a0fa9",
                 "0xe47ca047Cb7E6A9AdE9405Ca68077d63424F34eC"
+            ]
+        },
+        {
+            "name": "moonriver",
+            "web3": "https://moonriver.public.blastapi.io",
+            "network": "MOONRIVER",
+            "addresses": [
+                "0x4a0474E3262d4DB3306Cea4F207B5d66eC8E0AA9",
+                "0x97D811A7eb99Ef4Cb027ad59800cE27E68Ee1109",
+                "0x5db6617ddf077d76cfd9d7fc0fa91aaabc3da683",
+            ]
+        },
+        {
+            "name": "harmony",
+            "web3": "https://api.harmony.one",
+            "network": "HARMONY",
+            "addresses": [
+                "0x46469f995A5CB60708200C25EaD3cF1667Ed36d6",
+                "0x12FcB286D664F37981a42cbAce92eAf28d1dA94f",
+                "0x9f4E3d01c634441F284beb92bBAEeb76133BbB28",
             ]
         },
         {
@@ -130,39 +143,17 @@ async function maiRunner(onlyFTM=false) {
                 "0x86f78d3cbca0636817ad9e27a44996c738ec4932",
                 "0xa478e708a27853848c6bc979668fe6225fee46fa",
                 "0x7198ff382b5798dab7dc72a23c1fec9dc091893b",
-                "0xc88c8ada95d92c149377aa660837460775dcc6d9",
+                "0xc88c8ada95d92c149377aa660837460775dcc6d9"
             ]
         },
         {
-            "name": "avalanche",
-            "web3": "https://rpc.ankr.com/avalanche",
-            "network": "AVAX",
-            "addresses": [
-                "0xfA19c1d104F4AEfb8d5564f02B3AdCa1b515da58",
-                "0x13a7fe3ab741ea6301db8b164290be711f546a73",
-                "0xa9122dacf3fccf1aae6b8ddd1f75b6267e5cbbb8",
-                "0x1f8f7a1d38e41eaf0ed916def29bdd13f2a3f11a",
-                "0x73a755378788a4542a780002a75a7bae7f558730",
-            ]
-        },
-        {
-            "name": "binance",
+            "name": "BSC",
             "web3": "https://bsc-dataseed1.binance.org/",
             "network": "BSC",
             "addresses": [
                 "0xa56f9a54880afbc30cf29bb66d2d9adcdcaeadd6",
                 "0x014a177e9642d1b4e970418f894985dc1b85657f",
                 "0x7333fd58d8D73a8e5FC1a16C8037ADa4f580FA2B",
-            ]
-        },
-        {
-            "name": "moonriver",
-            "web3": "https://moonriver.public.blastapi.io",
-            "network": "MOONRIVER",
-            "addresses": [
-                "0x4a0474E3262d4DB3306Cea4F207B5d66eC8E0AA9",
-                "0x97D811A7eb99Ef4Cb027ad59800cE27E68Ee1109",
-                "0x5db6617ddf077d76cfd9d7fc0fa91aaabc3da683",
             ]
         },
         {
@@ -174,33 +165,44 @@ async function maiRunner(onlyFTM=false) {
                 "0xc09c73f7b32573d178138e76c0e286ba21085c20",
                 "0xb89c1b3d9f335b9d8bb16016f3d60160ae71041f",
                 "0x5A03716bd1f338D7849f5c9581AD5015ce0020B0",
-                "0x19Cb63CCbfAC2f28B1fd79923f6aDfC096e6EBB4",
+                "0x19Cb63CCbfAC2f28B1fd79923f6aDfC096e6EBB4"
             ]
         },
         {
-            "name": "harmony",
-            "web3": "https://api.harmony.one",
-            "network": "HARMONY",
+            "name": "ethereum",
+            "web3": "https://eth-mainnet.g.alchemy.com/v2/8n_vZdyeQruIzqHrzgNwVaVTf_1xSUJc",
+            "network": "ETH",
             "addresses": [
-                "0x46469f995A5CB60708200C25EaD3cF1667Ed36d6",
-                "0x12FcB286D664F37981a42cbAce92eAf28d1dA94f",
-                "0x9f4E3d01c634441F284beb92bBAEeb76133BbB28",
+                "0x60d133c666919B54a3254E0d3F14332cB783B733",
+                "0xEcbd32bD581e241739be1763DFE7a8fFcC844ae1",
+                "0x98eb27E5F24FB83b7D129D789665b08C258b4cCF",
+                "0x8C45969aD19D297c9B85763e90D0344C6E2ac9d1",
+                "0xcc61Ee649A95F2E2f0830838681f839BDb7CB823",
+                "0x82E90EB7034C1DF646bD06aFb9E67281AAb5ed28",
+                "0x67411793c5dcf9abc5a8d113ddd0e596cd5ba3e7",
+                "0xD1a6F422ceFf5a39b764e340Fd1bCd46C0744F83",
+                "0x86f78d3cbCa0636817AD9e27a44996C738Ec4932",
+                "0xCA3EB45FB186Ed4e75B9B22A514fF1d4abAdD123",
+                "0x4ce4c542d96ce1872fea4fa3fbb2e7ae31862bad",
+                "0x5773e8953cf60f495eb3c2db45dd753b5c4b7473",
+                "0x954ac12c339c60eafbb32213b15af3f7c7a0dec2",
             ]
         },
-
     ]
 
     let badDebt = {
         "total": 0,
     };
+    let totalBorrows = 0;
 
 
     for (const network of mai) {
-        console.log("network", network.name)
+        console.log('sending ?', sending);
+        console.log("network", network.name);
         badDebt[network] = {};
         const web3 = new Web3(network["web3"]);
         for (const addr of network["addresses"]) {
-        console.log("vault address", addr);
+            console.log("vault address", addr);
             if (network.name === "FTM") {
                 sleepTime = 15000;
                 //// Get FTM value
@@ -211,26 +213,32 @@ async function maiRunner(onlyFTM=false) {
                     "multicallSize": 1000,
                     "address": addr,
                 }
-                const call = new MaiParser(callInfo, "FTM", "FTM", web3, geckoFTMPrice);
-                const vaultBadDebt = await call.main(true);
+                const call = new MaiParser(sending, callInfo, "FTM", "FTM", web3, geckoFTMPrice);
+                const returned = await call.main(true);
+                const vaultBadDebt = returned.sumOfBadDebt;
+                totalBorrows += returned;
+                console.log('total borrows', totalBorrows);
                 badDebt[network][addr] = vaultBadDebt;
                 badDebt["total"] += vaultBadDebt;
                 console.log(`sleeping for ${sleepTime / 1000} seconds.`)
                 await sleep(sleepTime);
             }
-            if(onlyFTM === false && network !== "FTM"){
+            if (onlyFTM === false && network !== "FTM") {
                 console.log(addr)
                 const callInfo = {
                     "multicallSize": 1000,
                     "address": addr,
                 }
 
-                const call = new MaiParser(callInfo, network['network'], network['name'], web3);
-                const vaultBadDebt = await call.main(true);
+                const call = new MaiParser(sending, callInfo, network['network'], network['name'], web3);
+                const returned = await call.main(true);
+                totalBorrows += returned;
+                const vaultBadDebt = returned.sumOfBadDebt;
+                console.log('total borrows', totalBorrows);
                 badDebt[network][addr] = vaultBadDebt;
                 badDebt["total"] += vaultBadDebt;
             }
-            if(onlyFTM === true && network !== "FTM"){
+            if (onlyFTM === true && network !== "FTM") {
                 console.log('skipping, FTM only run');
             }
         }
@@ -238,6 +246,7 @@ async function maiRunner(onlyFTM=false) {
 
     console.log("ending");
     console.log(badDebt);
+    console.log('total borrows', totalBorrows);
 
 }
 
@@ -245,4 +254,4 @@ async function maiRunner(onlyFTM=false) {
 
 
 
-maiRunner();
+maiRunner(false, true);
