@@ -161,7 +161,7 @@ class MaiParser {
                     oraclePrice = toBN(oraclePrice).mul(toBN(10000));
                     this.feedDecimals = await this.vault.methods.priceSourceDecimals().call();
                     if(tokenAddress === "0x321162Cd933E2Be498Cd2267a90534A804051b11"){
-                        this.feedDecimals = 18;
+                        this.feedDecimals = 8;
                         this.tokenDecimals = 8;
                     }
                     const priceFeedDecimalsFactor = toBN(10).pow(toBN(this.feedDecimals));
@@ -325,7 +325,7 @@ class MaiParser {
             "calculatedBorrows": this.totalBorrows.toString(),
             "name": this.name
         }
-        const vaultName = await this.vault.methods.symbol().call();
+        const vaultName = await this.vault.methods.name().call();
         const fileName = `subjob${this.networkName}_MAI_${vaultName}.json`;
         const day = getDay();
         uploadJsonFile(JSON.stringify(this.output), fileName, day);
