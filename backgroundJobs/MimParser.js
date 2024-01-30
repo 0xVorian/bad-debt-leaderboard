@@ -302,8 +302,13 @@ class MimParser {
                 borrows = borrows.add(debt)
             }
         }
+        const totalOutsandingBorrowReponse = await this.calderons[0].methods.totalBorrow().call();
+        const totalOutsandingBorrow = toBN(totalOutsandingBorrowReponse[0]);
 
         this.tvl = tvl
+        if(tvl.lt(totalOutsandingBorrow) && this.sumOfBadDebt == 0){
+            this.sumOfBadDebt = totalOutsandingBorrow.sub(tvl);
+        }
 
         this.output = { "total" :  this.sumOfBadDebt.toString(), "updated" : currTime.toString(), "decimals" : "18", "users" : userWithBadDebt,
                         "tvl" : this.tvl.toString(), "deposits" : deposits.toString(), "borrows" : borrows.toString(),

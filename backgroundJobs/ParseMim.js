@@ -32,9 +32,13 @@ const ethCalderons =[
     { "name" : "yvYFI", "address" : "0xFFbF4892822e0d552CFF317F65e1eE7b5D3d9aE6", "deployBlock" : 12558943},
     { "name" : "cvx3pool (old)", "address" : "0x806e16ec797c69afa8590A55723CE4CC1b54050E", "deployBlock" : 13148516},
     { "name" : "cvx3pool (new)", "address" : "0x6371EfE5CD6e3d2d7C477935b7669401143b7985", "deployBlock" : 13505014},
+    { "name" : "cvx3Crypto", "address" : "0x7259e152103756e1616A77Ae982353c3751A6a90", "deployBlock" : 16469725},
+    { "name" : "yvcrvSTETH Concentrate", "address" : "0x53375adD9D2dFE19398eD65BAaEFfe622760A9A6", "deployBlock" : 14771488},
+    { "name" : "LUSD", "address" : "0x8227965A7f42956549aFaEc319F4E444aa438Df5", "deployBlock" : 15632924},
+    { "name" : "MagicApe", "address" : "0x692887E8877C6Dd31593cda44c382DB5b289B684", "deployBlock" : 16661719},
+    { "name" : "Stargate USDT", "address" : "0xc6B2b3fE7c3D7a6f823D9106E22e66660709001e", "deployBlock" : 14744450},
     { "name" : "UST (Degenbox)", "address" : "0xbc36FdE44A7FD8f545d459452EF9539d7A14dd63", "deployBlock" : 13486613}
 ]
-
 class MimParser extends MIM {
   constructor(i) {
     const mimInfo = {
